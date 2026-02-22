@@ -145,7 +145,7 @@
 
     function updateUI() {
         const t = translations[currentLang];
-        document.getElementById('welcome-msg').innerText = t.welcome;
+        document.getElementById('welcome-msg').innerHTML = t.welcome;
         document.getElementById('title-text').innerText = t.title;
         document.getElementById('label-money').innerText = t.money;
         document.getElementById('label-day').innerText = t.day;
@@ -177,6 +177,7 @@
 </script>
 </body>
 </html>
+
 
 
 
