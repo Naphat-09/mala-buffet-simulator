@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Mala Buffet Simulator</title>
+    <style>
+        body { font-family: 'Tahoma', sans-serif; background-color: #2c3e50; color: white; display: flex; justify-content: center; padding: 20px; }
+        .game-container { background-color: #c0392b; padding: 20px; border-radius: 15px; width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
+        .lang-switch { position: absolute; top: 10px; right: 10px; background: #f1c40f; color: #333; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em; z-index: 10; }
+        h1 { text-align: center; color: #f1c40f; text-shadow: 2px 2px #000; margin-bottom: 10px; }
+        .stats { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; font-size: 0.85em; }
+        .inventory-item { background: white; color: #333; margin: 10px 0; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .freshness-low { color: red; font-weight: bold; }
+        button { cursor: pointer; border: none; border-radius: 5px; transition: 0.2s; font-weight: bold; }
+        .btn-open { width: 100%; padding: 15px; font-size: 1.2em; background-color: #27ae60; color: white; margin-top: 10px; }
+        .btn-open:hover { background-color: #2ecc71; }
+        .btn-buy { background: #f39c12; color: white; padding: 8px 12px; font-size: 0.8em; }
+        .log { background: #ecf0f1; color: #333; padding: 10px; height: 180px; overflow-y: auto; font-size: 0.9em; margin-top: 15px; border-radius: 5px; line-height: 1.6; }
+        .day-separator { border-top: 2px dashed #bdc3c7; margin: 10px 0; padding-top: 5px; font-weight: bold; color: #2c3e50; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="lang-switch" onclick="toggleLang()" id="lang-btn">EN</div>
+    <h1 id="title-text">🌶️ Mala Buffet Simulator</h1>
+    
+    <div class="stats">
+        <div><span id="label-money">💰 เงิน</span>: <span id="money">500</span>฿</div>
+        <div><span id="label-day">🗓️ วันที่</span>: <span id="day">1</span> / 7</div>
+        <div><span id="label-price">🎟️ หัวละ</span>: 199฿</div>
+    </div>
+
+    <div id="inventory-list"></div>
+
+    <button class="btn-open" id="btn-open-text" onclick="nextDay()">🔥 เปิดร้านรับลูกค้า</button>
+
+    <div class="log" id="game-log">
+        <div id="welcome-msg">ระบบ: ยินดีต้อนรับ! คุณต้องบริหารร้านให้รอดจนถึงวันที่ 7</div>
+    </div>
+</div>
+
+<script>
+    let currentLang = 'th';
+    const translations = {
+        th: {
+            title: "🌶️ Mala Buffet Simulator",
+            money: "💰 เงิน", day: "🗓️ วันที่", price: "🎟️ หัวละ",
+            openBtn: "🔥 เปิดร้านรับลูกค้า",
+            welcome: "ระบบ: ยินดีต้อนรับ! คุณต้องบริหารร้านให้รอดจนถึงวันที่ 7",
+            stock: "สต็อก", fresh: "สด", buy: "ซื้อ",
+            fullStock: "คลังสินค้าเต็ม!", noMoney: "เงินทุนไม่เพียงพอ!",
+            outOfStock: "ของหมดสต็อก! ลูกค้าไม่พอใจปิดร้านทันที!",
+            spoiled: "เน่าเสียจนหมดสต็อก!",
+            gameOver: "เงินหมดเกลี้ยง! คุณแพ้แล้วในวันที่",
+            win: "🎉 ยินดีด้วย! คุณเป็นตำนานแห่งวงการหม่าล่า!",
+            incomeMsg: "รายได้วันนี้", customers: "คน",
+            meat: "เนื้อสไลด์", pork: "เนื้อหมู", mushroom: "เห็ด", veg: "ผักกาด"
+        },
+        en: {
+            title: "🌶️ Mala Buffet Simulator",
+            money: "💰 Money", day: "🗓️ Day", price: "🎟️ Ticket",
+            openBtn: "🔥 Open Restaurant",
+            welcome: "System: Welcome! Survive for 7 days.",
+            stock: "Stock", fresh: "Fresh", buy: "Buy",
+            fullStock: "Inventory Full!", noMoney: "Not enough money!",
+            outOfStock: "Out of Stock! Game Over!",
+            spoiled: "Item spoiled and empty!",
+            gameOver: "Bankrupt! You lost on day",
+            win: "🎉 Congrats! You are the Mala Legend!",
+            incomeMsg: "Daily Income", customers: "Customers",
+            meat: "Sliced Beef", pork: "Sliced Pork", mushroom: "Mushroom", veg: "Cabbage"
+        }
+    };
+
+    let money = 500;
+    let day = 1;
+    let buffetPrice = 199;
+    
+    let inventory = [
+        { nameKey: "meat", stock: 10, freshness: 100, spoilRate: 30, buyPrice: 40, demand: 2.0 },
+        { nameKey: "pork", stock: 10, freshness: 100, spoilRate: 30, buyPrice: 30, demand: 1.5 }, 
+        { nameKey: "mushroom", stock: 10, freshness: 100, spoilRate: 10, buyPrice: 10, demand: 0.5 },
+        { nameKey: "veg", stock: 10, freshness: 100, spoilRate: 20, buyPrice: 20, demand: 1.0 }
+    ];
+
+    function toggleLang() {
+        currentLang = currentLang === 'th' ? 'en' : 'th';
+        document.getElementById('lang-btn').innerText = currentLang === 'th' ? 'EN' : 'TH';
+        updateUI();
+    }
+
+    function addLog(msg) {
+        const logElement = document.getElementById('game-log');
+        const newLog = document.createElement('div');
+        newLog.innerHTML = msg;
+        logElement.insertBefore(newLog, logElement.firstChild);
+    }
+
+    function buyItem(index) {
+        let item = inventory[index];
+        let t = translations[currentLang];
+        if (item.stock + 1 > 20) { alert(`${t.fullStock} (Max 20)`); return; }
+        if (money >= item.buyPrice) {
+            money -= item.buyPrice;
+            item.stock += 1;
+            item.freshness = 100; 
+            addLog(`<span style="color:green">✅ ${t.buy} ${t[item.nameKey]} +1 (-${item.buyPrice}฿)</span>`);
+            updateUI();
+        } else { alert(t.noMoney); }
+    }
+
+    function nextDay() {
+        let t = translations[currentLang];
+        let customers = Math.floor(Math.random() * 6) + 5; 
+        let income = customers * buffetPrice;
+        money += income;
+
+        addLog(`<div class="day-separator">--- Day ${day} ---</div>`);
+        addLog(`💰 ${t.incomeMsg}: +${income}฿ (${customers} ${t.customers})`);
+
+        for (let item of inventory) {
+            let consumed = Math.floor((Math.random() * 0.5 + 0.5) * customers * item.demand);
+            if (item.stock >= consumed) {
+                item.stock -= consumed;
+                addLog(`🍴 ${t[item.nameKey]}: -${consumed}`);
+            } else {
+                item.stock = 0; updateUI();
+                alert(`❌ ${t[item.nameKey]} ${t.outOfStock}`);
+                location.reload(); return; 
+            }
+            item.freshness -= item.spoilRate;
+            if (item.freshness <= 0) {
+                item.stock = 0; updateUI();
+                alert(`❌ ${t[item.nameKey]} ${t.spoiled}`);
+                location.reload(); return;
+            }
+        }
+
+        if (money <= 0) { alert(`${t.gameOver} ${day}`); location.reload(); return; }
+        if (day >= 7) { alert(`${t.win}\n💰: ${money.toLocaleString()}฿`); location.reload(); return; }
+        day++;
+        updateUI();
+    }
+
+    function updateUI() {
+        const t = translations[currentLang];
+        document.getElementById('welcome-msg').innerText = t.welcome;
+        document.getElementById('title-text').innerText = t.title;
+        document.getElementById('label-money').innerText = t.money;
+        document.getElementById('label-day').innerText = t.day;
+        document.getElementById('label-price').innerText = t.price;
+        document.getElementById('btn-open-text').innerText = t.openBtn;
+        document.getElementById('money').innerText = money.toLocaleString();
+        document.getElementById('day').innerText = day;
+        
+        let invHTML = "";
+        inventory.forEach((item, index) => {
+            const freshClass = item.freshness < 40 ? "freshness-low" : "";
+            const stockStyle = item.stock < 5 ? 'style="color: red; font-weight: bold;"' : "";
+            invHTML += `
+                <div class="inventory-item">
+                    <div>
+                        <strong>${t[item.nameKey]}</strong><br>
+                        <small>
+                            ${t.stock}: <span ${stockStyle}>${item.stock}</span> / 20 | 
+                            <span class="${freshClass}">${t.fresh}: ${item.freshness}%</span>
+                        </small>
+                    </div>
+                    <button class="btn-buy" onclick="buyItem(${index})">${t.buy} (+1)</button>
+                </div>`;
+        });
+        document.getElementById('inventory-list').innerHTML = invHTML;
+    }
+
+    updateUI();
+</script>
+</body>
+</html>
