@@ -167,7 +167,7 @@
                             <span class="${freshClass}">${t.fresh}: ${item.freshness}%</span>
                         </small>
                     </div>
-                    <button class="btn-buy" onclick="buyItem(${index})">${t.buy} (+1)</button>
+                    <button class="btn-buy" onclick="buyItem(${index})">${t.buy} (${item.buyPrice}฿)</button>
                 </div>`;
         });
         document.getElementById('inventory-list').innerHTML = invHTML;
@@ -177,6 +177,7 @@
 </script>
 </body>
 </html>
+
 
 
 
